@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>nobananasfor.me - Admin Panel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header h1 { color: #333; margin-bottom: 5px; }
+        .header p { color: #666; }
+        .section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .section h2 { color: #333; margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #333; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .form-group textarea { height: 80px; resize: vertical; }
+        .form-help { font-size: 12px; color: #666; margin-top: 5px; }
+        .btn { background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-block; }
+        .btn:hover { background: #0056b3; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .message { padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+        .message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .loading { display: none; color: #666; }
+
+        /* Statistika */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: #f8f9fa; padding: 15px; border-radius: 6px; text-align: center; }
+        .stat-card h3 { font-size: 24px; color: #007bff; margin-bottom: 5px; }
+        .stat-card p { color: #666; font-size: 14px; }
+
+        /* Otsingu ja filtrite riba */
+        .controls { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .search-box { flex: 1; min-width: 200px; }
+        .search-box input { margin-bottom: 0; }
+        .filter-group { display: flex; gap: 10px; align-items: center; }
+        .filter-group select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+
+        /* Tabel */
+        .table-container { overflow-x: auto; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th, .table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #dee2e6; }
+        .table th { background: #f8f9fa; font-weight: 600; color: #495057; cursor: pointer; user-select: none; }
+        .table th:hover { background: #e9ecef; }
+        .table th.sortable::after { content: ' ↕️'; font-size: 10px; }
+        .table th.sort-asc::after { content: ' ↑'; color: #007bff; }
+        .table th.sort-desc::after { content: ' ↓'; color: #007bff; }
+        .table td { vertical-align: top; }
+        .poster-cell { width: 60px; }
+        .poster-thumb { width: 50px; height: 75px; object-fit: cover; border-radius: 4px; }
+        .poster-placeholder { width: 50px; height: 75px; background: #f8f9fa; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .title-cell { font-weight: 500; }
+        .meta-cell { font-size: 12px; color: #666; }
+        .description-cell { max-width: 200px; font-size: 12px; color: #555; }
+        .actions-cell { white-space: nowrap; }
+
+        /* Lehekülgede jaotus */
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; }
+        .pagination button { padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px; }
+        .pagination button:hover { background: #f8f9fa; }
+        .pagination button.active { background: #007bff; color: white; border-color: #007bff; }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pagination .page-info { color: #666; font-size: 14px; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 10% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { margin: 0; color: #333; }
+        .close { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: #000; }
+        .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .controls { flex-direction: column; align-items: stretch; }
+            .search-box { min-width: auto; }
+            .table th, .table td { padding: 8px 4px; font-size: 12px; }
+            .description-cell { max-width: 150px; }
+            .modal-content { margin: 5% auto; width: 95%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍌 nobananasfor.me Admin Panel</h1>
+            <p>Filmide ja seriaalide haldamine</p>
+        </div>
+
+        <!-- Statistika -->
+        <div class="stats">
+            <div class="stat-card">
+                <h3 id="totalCount">-</h3>
+                <p>Kokku show'd</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="movieCount">-</h3>
+                <p>Filme</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="tvCount">-</h3>
+                <p>Seriaalid</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="tmdbCount">-</h3>
+                <p>TMDB andmetega</p>
+            </div>
+        </div>
+
+        <!-- Lisa uus show -->
+        <div class="section">
+            <h2>➕ Lisa Uus Film/Seriaal</h2>
+            <div id="addMessage"></div>
+            <form id="addShowForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label for="imdbInput">IMDb Link või ID:</label>
+                        <input type="text" id="imdbInput" name="imdb_input" placeholder="https://www.imdb.com/title/tt0111161/ või tt0111161" required>
+                        <div class="form-help">Kopeeri IMDb link või sisesta ID otse</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="adminDescription">Admin kirjeldus:</label>
+                        <textarea id="adminDescription" name="admin_description" placeholder="Lühike isiklik kirjeldus..."></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">
+                    <span class="btn-text">Lisa Show</span>
+                    <span class="loading">⏳ Hangin TMDB andmeid...</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Shows tabel -->
+        <div class="section">
+            <h2>📚 Kõik Shows</h2>
+            <div id="showsMessage"></div>
+            
+            <!-- Otsing ja filtrid -->
+            <div class="controls">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Otsi pealkirja järgi..." onkeyup="filterShows()">
+                </div>
+                <div class="filter-group">
+                    <label>Tüüp:</label>
+                    <select id="typeFilter" onchange="filterShows()">
+                        <option value="">Kõik</option>
+                        <option value="movie">Filmid</option>
+                        <option value="tv">Seriaalid</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Andmed:</label>
+                    <select id="dataFilter" onchange="filterShows()">
+                        <option value="">Kõik</option>
+                        <option value="tmdb">TMDB andmetega</option>
+                        <option value="no-tmdb">Ilma TMDB-ta</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <button class="btn btn-sm" onclick="resetFilters()">↻ Reset</button>
+                </div>
+            </div>
+
+            <div class="loading" id="showsLoading">⏳ Laen shows...</div>
+            
+            <div class="table-container">
+                <table class="table" id="showsTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="sortShows('id')">#</th>
+                            <th>Poster</th>
+                            <th class="sortable" onclick="sortShows('title')">Pealkiri</th>
+                            <th class="sortable" onclick="sortShows('type')">Tüüp</th>
+                            <th class="sortable" onclick="sortShows('year')">Aasta</th>
+                            <th>Žanrid</th>
+                            <th>Kirjeldus</th>
+                            <th class="sortable" onclick="sortShows('created_at')">Lisatud</th>
+                            <th>Toimingud</th>
+                        </tr>
+                    </thead>
+                    <tbody id="showsTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Lehekülgede jaotus -->
+            <div class="pagination" id="pagination" style="display: none;">
+                <button onclick="changePage(-1)">&lt; Eelmine</button>
+                <div id="pageButtons"></div>
+                <button onclick="changePage(1)">Järgmine &gt;</button>
+                <div class="page-info" id="pageInfo"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal muutmiseks -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Muuda Show</h3>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <form id="editShowForm">
+                <div class="form-group">
+                    <label>Pealkiri:</label>
+                    <input type="text" id="editTitle" readonly style="background: #f8f9fa;">
+                </div>
+                <div class="form-group">
+                    <label for="editAdminDescription">Admin kirjeldus:</label>
+                    <textarea id="editAdminDescription" name="admin_description" placeholder="Lühike isiklik kirjeldus..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn" onclick="closeEditModal()">Tühista</button>
+                    <button type="submit" class="btn btn-success">
+                        <span class="btn-text">Salvesta</span>
+                        <span class="loading">⏳ Salvestamine...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let allShows = [];
+        let filteredShows = [];
+        let currentPage = 1;
+        let showsPerPage = 10;
+        let currentSort = { field: 'created_at', direction: 'desc' };
+        let editingShowId = null;
+
+        // Eraldab IMDb ID linkist või ID-st
+        function extractImdbId(input) {
+            input = input.trim();
+            if (input.match(/^tt\d+$/)) return input;
+            const match = input.match(/tt\d+/);
+            if (match) return match[0];
+            const numbersMatch = input.match(/\d{7,8}/);
+            if (numbersMatch) return 'tt' + numbersMatch[0];
+            return null;
+        }
+
+        // Lisa uus show
+        document.getElementById('addShowForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            const imdbInput = formData.get('imdb_input');
+            const imdbId = extractImdbId(imdbInput);
+            
+            if (!imdbId) {
+                showMessage('addMessage', 'Ei suutnud IMDb ID-d tuvastada. Kontrolli linki või ID-d.', 'error');
+                return;
+            }
+            
+            const data = {
+                imdb_id: imdbId,
+                admin_description: formData.get('admin_description') || ''
+            };
+            
+            const button = form.querySelector('button');
+            const btnText = button.querySelector('.btn-text');
+            const loading = button.querySelector('.loading');
+            
+            btnText.style.display = 'none';
+            loading.style.display = 'inline';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/shows`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('addMessage', `Show "${result.data.title}" edukalt lisatud!`, 'success');
+                    form.reset();
+                    loadShows();
+                } else {
+                    showMessage('addMessage', `Viga: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('addMessage', `Viga: ${error.message}`, 'error');
+            } finally {
+                btnText.style.display = 'inline';
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        });
+
+        // Näita teadet
+        function showMessage(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="message ${type}">${message}</div>`;
+            setTimeout(() => element.innerHTML = '', 5000);
+        }
+
+        // Laadi kõik shows
+        async function loadShows() {
+            const loading = document.getElementById('showsLoading');
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_BASE}/shows`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    allShows = result.data;
+                    updateStats();
+                    filterShows();
+                } else {
+                    showMessage('showsMessage', `Viga: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('showsMessage', `Viga: ${error.message}`, 'error');
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // Uuenda statistikat
+        function updateStats() {
+            const total = allShows.length;
+            const movies = allShows.filter(s => s.type === 'movie').length;
+            const tv = allShows.filter(s => s.type === 'tv').length;
+            const withTmdb = allShows.filter(s => s.tmdb_id).length;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('movieCount').textContent = movies;
+            document.getElementById('tvCount').textContent = tv;
+            document.getElementById('tmdbCount').textContent = withTmdb;
+        }
+
+        // Filtreeri shows
+        function filterShows() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value;
+            const dataFilter = document.getElementById('dataFilter').value;
+
+            filteredShows = allShows.filter(show => {
+                const matchesSearch = show.title.toLowerCase().includes(searchTerm);
+                const matchesType = !typeFilter || show.type === typeFilter;
+                const matchesData = !dataFilter || 
+                    (dataFilter === 'tmdb' && show.tmdb_id) ||
+                    (dataFilter === 'no-tmdb' && !show.tmdb_id);
+                
+                return matchesSearch && matchesType && matchesData;
+            });
+
+            sortShows(currentSort.field, currentSort.direction);
+        }
+
+        // Sorteeri shows
+        function sortShows(field, direction = null) {
+            if (direction === null) {
+                direction = currentSort.field === field && currentSort.direction === 'asc' ? 'desc' : 'asc';
+            }
+            
+            currentSort = { field, direction };
+
+            filteredShows.sort((a, b) => {
+                let aVal = a[field];
+                let bVal = b[field];
+                
+                if (field === 'created_at') {
+                    aVal = new Date(aVal);
+                    bVal = new Date(bVal);
+                }
+                
+                if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            updateSortHeaders();
+            currentPage = 1;
+            renderTable();
+        }
+
+        // Uuenda sort päiseid
+        function updateSortHeaders() {
+            document.querySelectorAll('.table th').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+            });
+            
+            const currentHeader = document.querySelector(`th[onclick="sortShows('${currentSort.field}')"]`);
+            if (currentHeader) {
+                currentHeader.classList.add(currentSort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+            }
+        }
+
+        // Renderdab tabeli
+        function renderTable() {
+            const startIndex = (currentPage - 1) * showsPerPage;
+            const endIndex = startIndex + showsPerPage;
+            const pageShows = filteredShows.slice(startIndex, endIndex);
+
+            const tbody = document.getElementById('showsTableBody');
+            tbody.innerHTML = pageShows.map(show => `
+                <tr>
+                    <td>${show.id}</td>
+                    <td class="poster-cell">
+                        ${show.poster_url ? 
+                            `<img src="${show.poster_url}" alt="${show.title}" class="poster-thumb">` : 
+                            '<div class="poster-placeholder">🎬</div>'
+                        }
+                    </td>
+                    <td class="title-cell">${show.title}</td>
+                    <td>${show.type === 'movie' ? '🎬 Film' : '📺 Seriaal'}</td>
+                    <td>${show.year || '-'}</td>
+                    <td class="meta-cell">${show.genres ? show.genres.join(', ') : '-'}</td>
+                    <td class="description-cell">${show.admin_description || '-'}</td>
+                    <td class="meta-cell">${new Date(show.created_at).toLocaleDateString('et-EE')}</td>
+                    <td class="actions-cell">
+                        <button class="btn btn-sm btn-danger" onclick="deleteShow(${show.id}, '${show.title}')">🗑️</button>
+                        <button class="btn btn-sm" onclick="editShow(${show.id})">✏️</button>
+                        ${show.imdb_id ? 
+                            `<button class="btn btn-sm" onclick="refreshShow(${show.id})">🔄</button>` : 
+                            ''
+                        }
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('showsTable').style.display = 'table';
+            renderPagination();
+        }
+
+        // Renderdab lehekülgede jaotuse
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredShows.length / showsPerPage);
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+
+            pagination.style.display = 'flex';
+
+            const pageButtons = document.getElementById('pageButtons');
+            let buttonsHTML = '';
+            
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    buttonsHTML += `<button onclick="goToPage(${i})" ${i === currentPage ? 'class="active"' : ''}>${i}</button>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    buttonsHTML += '<span>...</span>';
+                }
+            }
+            
+            pageButtons.innerHTML = buttonsHTML;
+
+            const startItem = (currentPage - 1) * showsPerPage + 1;
+            const endItem = Math.min(currentPage * showsPerPage, filteredShows.length);
+            document.getElementById('pageInfo').textContent = 
+                `${startItem}-${endItem} / ${filteredShows.length}`;
+        }
+
+        // Muuda lehekülge
+        function changePage(direction) {
+            const totalPages = Math.ceil(filteredShows.length / showsPerPage);
+            const newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderTable();
+            }
+        }
+
+        // Mine kindlale lehele
+        function goToPage(page) {
+            currentPage = page;
+            renderTable();
+        }
+
+        // Reset filtrid
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('typeFilter').value = '';
+            document.getElementById('dataFilter').value = '';
+            filterShows();
+        }
+
+        // Kustuta show
+        async function deleteShow(id, title) {
+            if (!confirm(`Kas oled kindel, et tahad kustutada "${title}"?`)) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/shows/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('showsMessage', 'Show edukalt kustutatud!', 'success');
+                    loadShows();
+                } else {
+                    showMessage('showsMessage', `Viga: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('showsMessage', `Viga: ${error.message}`, 'error');
+            }
+        }
+
+        // Uuenda show TMDB andmeid
+        async function refreshShow(id) {
+            try {
+                const response = await fetch(`${API_BASE}/admin/shows/${id}/refresh`, { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('showsMessage', 'Show andmed edukalt uuendatud!', 'success');
+                    loadShows();
+                } else {
+                    showMessage('showsMessage', `Viga: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('showsMessage', `Viga: ${error.message}`, 'error');
+            }
+        }
+
+        // Lae shows lehele laadides
+        loadShows();
+
+        // Muuda show
+        function editShow(id) {
+            const show = allShows.find(s => s.id === id);
+            if (!show) return;
+
+            editingShowId = id;
+            document.getElementById('editTitle').value = show.title;
+            document.getElementById('editAdminDescription').value = show.admin_description || '';
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        // Sulge muutmise modal
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            editingShowId = null;
+        }
+
+        // Salvesta muudatused
+        document.getElementById('editShowForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!editingShowId) return;
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            const data = {
+                admin_description: formData.get('admin_description') || ''
+            };
+            
+            const button = form.querySelector('button[type="submit"]');
+            const btnText = button.querySelector('.btn-text');
+            const loading = button.querySelector('.loading');
+            
+            btnText.style.display = 'none';
+            loading.style.display = 'inline';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/shows/${editingShowId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('showsMessage', 'Show kirjeldus edukalt uuendatud!', 'success');
+                    closeEditModal();
+                    loadShows();
+                } else {
+                    showMessage('showsMessage', `Viga: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('showsMessage', `Viga: ${error.message}`, 'error');
+            } finally {
+                btnText.style.display = 'inline';
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        });
+
+        // Sulge modal kui klikitakse väljaspool
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target === modal) {
+                closeEditModal();
+            }
+        }
+    </script>
+</body>
+</html>
